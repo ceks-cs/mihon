@@ -329,6 +329,11 @@ class LibraryScreenModel(
                     val item2Score = trackerScores[manga2.id] ?: defaultTrackerScoreSortValue
                     item1Score.compareTo(item2Score)
                 }
+                LibrarySort.Type.Artist -> {
+                    val artist1 = manga1.libraryManga.manga.artist.orEmpty().lowercase()
+                    val artist2 = manga2.libraryManga.manga.artist.orEmpty().lowercase()
+                    artist1.compareToWithCollator(artist2)
+                }
                 LibrarySort.Type.Random -> {
                     error("Why Are We Still Here? Just To Suffer?")
                 }
