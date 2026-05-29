@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.Clipboard
@@ -169,8 +170,12 @@ fun TrackerSearch(
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = slideOutVertically { it / 2 } + fadeOut(),
             ) {
+                // Capture all pointer input for the visible bottom action area.
+                // This ensures accidental taps outside the "track" button itself
+                // are still blocked from selecting another result item.
                 Row(
                     modifier = Modifier
+                        .interceptTouchArea()
                         .padding(MaterialTheme.padding.small)
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .fillMaxWidth(),
@@ -411,6 +416,20 @@ private fun SearchResultItemDetails(
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+// Prevent accidental taps on list items from passing through the bottom
+// action bar in the tracker search screen. The selected item row and the
+// track button are close together, so we consume all pointer input in the
+// bottom action area instead of letting it fall through.
+private fun Modifier.interceptTouchArea(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            // Consume pointer events until this composable is removed from
+            // composition, preventing touches from falling through.
+            awaitPointerEvent()
+        }
     }
 }
 
