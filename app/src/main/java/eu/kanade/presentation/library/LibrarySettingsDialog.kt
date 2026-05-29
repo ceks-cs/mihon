@@ -171,6 +171,7 @@ private fun ColumnScope.SortPage(
         }
         listOfNotNull(
             MR.strings.action_sort_alpha to LibrarySort.Type.Alphabetical,
+            MR.strings.action_sort_artist to LibrarySort.Type.Artist,
             MR.strings.action_sort_total to LibrarySort.Type.TotalChapters,
             MR.strings.action_sort_last_read to LibrarySort.Type.LastRead,
             MR.strings.action_sort_last_manga_update to LibrarySort.Type.LastUpdate,
