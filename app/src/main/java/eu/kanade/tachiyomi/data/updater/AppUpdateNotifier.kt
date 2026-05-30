@@ -19,7 +19,7 @@ import tachiyomi.i18n.MR
 
 internal class AppUpdateNotifier(private val context: Context) {
 
-    private val notificationBuilder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE)
+    private var activeBuilder: NotificationCompat.Builder? = null
 
     /**
      * Call to show notification.
@@ -52,7 +52,7 @@ internal class AppUpdateNotifier(private val context: Context) {
             )
         }
 
-        with(notificationBuilder) {
+        val builder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE) {
             setContentTitle(context.stringResource(MR.strings.update_check_notification_update_available))
             setContentText(release.version)
             setSmallIcon(android.R.drawable.stat_sys_download_done)
@@ -70,7 +70,7 @@ internal class AppUpdateNotifier(private val context: Context) {
                 releaseIntent,
             )
         }
-        notificationBuilder.show()
+        builder.show()
     }
 
     /**
@@ -79,7 +79,7 @@ internal class AppUpdateNotifier(private val context: Context) {
      * @param title tile of notification.
      */
     fun onDownloadStarted(title: String? = null): NotificationCompat.Builder {
-        with(notificationBuilder) {
+        val builder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE) {
             title?.let { setContentTitle(title) }
             setContentText(context.stringResource(MR.strings.update_check_notification_download_in_progress))
             setSmallIcon(android.R.drawable.stat_sys_download)
@@ -92,8 +92,9 @@ internal class AppUpdateNotifier(private val context: Context) {
                 NotificationReceiver.cancelDownloadAppUpdatePendingBroadcast(context),
             )
         }
-        notificationBuilder.show()
-        return notificationBuilder
+        activeBuilder = builder
+        builder.show()
+        return builder
     }
 
     /**
@@ -102,11 +103,12 @@ internal class AppUpdateNotifier(private val context: Context) {
      * @param progress progress of download (xx%/100).
      */
     fun onProgressChange(progress: Int) {
-        with(notificationBuilder) {
+        val builder = activeBuilder ?: context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE).also { activeBuilder = it }
+        with(builder) {
             setProgress(100, progress, false)
             setOnlyAlertOnce(true)
         }
-        notificationBuilder.show()
+        builder.show()
     }
 
     /**
@@ -116,7 +118,7 @@ internal class AppUpdateNotifier(private val context: Context) {
      */
     fun promptInstall(uri: Uri) {
         val installIntent = NotificationHandler.installApkPendingActivity(context, uri)
-        with(notificationBuilder) {
+        val builder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE) {
             setContentText(context.stringResource(MR.strings.update_check_notification_download_complete))
             setSmallIcon(android.R.drawable.stat_sys_download_done)
             setOnlyAlertOnce(false)
@@ -136,7 +138,7 @@ internal class AppUpdateNotifier(private val context: Context) {
                 NotificationReceiver.dismissNotificationPendingBroadcast(context, Notifications.ID_APP_UPDATE_PROMPT),
             )
         }
-        notificationBuilder.show(Notifications.ID_APP_UPDATE_PROMPT)
+        builder.show(Notifications.ID_APP_UPDATE_PROMPT)
     }
 
     /**
@@ -145,7 +147,7 @@ internal class AppUpdateNotifier(private val context: Context) {
      * @param url web location of apk to download.
      */
     fun onDownloadError(url: String) {
-        with(notificationBuilder) {
+        val builder = context.notificationBuilder(Notifications.CHANNEL_APP_UPDATE) {
             setContentText(context.stringResource(MR.strings.update_check_notification_download_error))
             setSmallIcon(R.drawable.ic_warning_white_24dp)
             setOnlyAlertOnce(false)
@@ -163,6 +165,6 @@ internal class AppUpdateNotifier(private val context: Context) {
                 NotificationReceiver.dismissNotificationPendingBroadcast(context, Notifications.ID_APP_UPDATE_ERROR),
             )
         }
-        notificationBuilder.show(Notifications.ID_APP_UPDATE_ERROR)
+        builder.show(Notifications.ID_APP_UPDATE_ERROR)
     }
 }

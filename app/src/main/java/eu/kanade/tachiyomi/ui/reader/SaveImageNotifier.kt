@@ -24,7 +24,7 @@ import tachiyomi.i18n.MR
  */
 class SaveImageNotifier(private val context: Context) {
 
-    private val notificationBuilder = context.notificationBuilder(Notifications.CHANNEL_COMMON)
+    private fun notificationBuilder() = context.notificationBuilder(Notifications.CHANNEL_COMMON)
     private val notificationId: Int = Notifications.ID_DOWNLOAD_IMAGE
 
     /**
@@ -58,16 +58,16 @@ class SaveImageNotifier(private val context: Context) {
      */
     fun onError(error: String?) {
         // Create notification
-        with(notificationBuilder) {
+        val builder = notificationBuilder().apply {
             setContentTitle(context.stringResource(MR.strings.download_notifier_title_error))
             setContentText(error ?: context.stringResource(MR.strings.unknown_error))
             setSmallIcon(android.R.drawable.ic_menu_report_image)
         }
-        updateNotification()
+        updateNotification(builder)
     }
 
     private fun showCompleteNotification(uri: Uri, image: Bitmap?) {
-        with(notificationBuilder) {
+        val builder = notificationBuilder().apply {
             setContentTitle(context.stringResource(MR.strings.picture_saved))
             setSmallIcon(R.drawable.ic_photo_24dp)
             image?.let { setStyle(NotificationCompat.BigPictureStyle().bigPicture(it)) }
@@ -84,13 +84,12 @@ class SaveImageNotifier(private val context: Context) {
                 context.stringResource(MR.strings.action_share),
                 NotificationReceiver.shareImagePendingBroadcast(context, uri),
             )
-
-            updateNotification()
         }
+        updateNotification(builder)
     }
 
-    private fun updateNotification() {
+    private fun updateNotification(builder: NotificationCompat.Builder) {
         // Displays the progress bar on notification
-        context.notify(notificationId, notificationBuilder.build())
+        context.notify(notificationId, builder.build())
     }
 }

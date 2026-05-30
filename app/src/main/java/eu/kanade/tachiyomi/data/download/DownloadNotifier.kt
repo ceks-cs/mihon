@@ -28,19 +28,17 @@ internal class DownloadNotifier(private val context: Context) {
 
     private val preferences: SecurityPreferences by injectLazy()
 
-    private val progressNotificationBuilder by lazy {
+    private fun progressNotificationBuilder() =
         context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_PROGRESS) {
             setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             setAutoCancel(false)
             setOnlyAlertOnce(true)
         }
-    }
 
-    private val errorNotificationBuilder by lazy {
+    private fun errorNotificationBuilder() =
         context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_ERROR) {
             setAutoCancel(false)
         }
-    }
 
     /**
      * Status of download. Used for correct notification icon.
@@ -70,25 +68,22 @@ internal class DownloadNotifier(private val context: Context) {
      * @param download download object containing download information.
      */
     fun onProgressChange(download: Download) {
-        with(progressNotificationBuilder) {
-            if (!isDownloading) {
-                setSmallIcon(android.R.drawable.stat_sys_download)
-                clearActions()
-                // Open download manager when clicked
-                setContentIntent(NotificationHandler.openDownloadManagerPendingActivity(context))
-                isDownloading = true
-                // Pause action
-                addAction(
-                    R.drawable.ic_pause_24dp,
-                    context.stringResource(MR.strings.action_pause),
-                    NotificationReceiver.pauseDownloadsPendingBroadcast(context),
-                )
-                addAction(
-                    R.drawable.ic_book_24dp,
-                    context.stringResource(MR.strings.action_show_manga),
-                    NotificationReceiver.openEntryPendingActivity(context, download.manga.id),
-                )
-            }
+        val builder = progressNotificationBuilder().apply {
+            setSmallIcon(android.R.drawable.stat_sys_download)
+            clearActions()
+            // Open download manager when clicked
+            setContentIntent(NotificationHandler.openDownloadManagerPendingActivity(context))
+            // Pause action
+            addAction(
+                R.drawable.ic_pause_24dp,
+                context.stringResource(MR.strings.action_pause),
+                NotificationReceiver.pauseDownloadsPendingBroadcast(context),
+            )
+            addAction(
+                R.drawable.ic_book_24dp,
+                context.stringResource(MR.strings.action_show_manga),
+                NotificationReceiver.openEntryPendingActivity(context, download.manga.id),
+            )
 
             val downloadingProgressText = context.stringResource(
                 MR.strings.chapter_downloading_progress,
@@ -112,16 +107,17 @@ internal class DownloadNotifier(private val context: Context) {
 
             setProgress(download.pages!!.size, download.downloadedImages, false)
             setOngoing(true)
-
-            show(Notifications.ID_DOWNLOAD_CHAPTER_PROGRESS)
         }
+
+        builder.show(Notifications.ID_DOWNLOAD_CHAPTER_PROGRESS)
+        isDownloading = true
     }
 
     /**
      * Show notification when download is paused.
      */
     fun onPaused() {
-        with(progressNotificationBuilder) {
+        progressNotificationBuilder().apply {
             setContentTitle(context.stringResource(MR.strings.chapter_paused))
             setContentText(context.stringResource(MR.strings.download_notifier_download_paused))
             setSmallIcon(R.drawable.ic_pause_24dp)
@@ -169,7 +165,7 @@ internal class DownloadNotifier(private val context: Context) {
      * Only works on Android 8+.
      */
     fun onWarning(reason: String, timeout: Long? = null, contentIntent: PendingIntent? = null, mangaId: Long? = null) {
-        with(errorNotificationBuilder) {
+        errorNotificationBuilder().apply {
             setContentTitle(context.stringResource(MR.strings.download_notifier_downloader_title))
             setStyle(NotificationCompat.BigTextStyle().bigText(reason))
             setSmallIcon(R.drawable.ic_warning_white_24dp)
@@ -204,7 +200,7 @@ internal class DownloadNotifier(private val context: Context) {
      */
     fun onError(error: String? = null, chapter: String? = null, mangaTitle: String? = null, mangaId: Long? = null) {
         // Create notification
-        with(errorNotificationBuilder) {
+        errorNotificationBuilder().apply {
             setContentTitle(
                 mangaTitle?.plus(": $chapter") ?: context.stringResource(MR.strings.download_notifier_downloader_title),
             )
