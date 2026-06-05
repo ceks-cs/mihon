@@ -77,10 +77,48 @@ object DiskUtil {
      */
     fun getAvailableStorageSpace(f: UniFile): Long {
         return try {
-            val stat = StatFs(f.uri.path)
+            val stat = StatFs(f.uri.path ?: return -1L)
             stat.availableBlocksLong * stat.blockSizeLong
         } catch (_: Exception) {
             -1L
+        }
+    }
+
+    /**
+     * Checks if the given directory has sufficient space and is writable.
+     * @param dir The directory to check.
+     * @param requiredBytes The amount of space required in bytes.
+     * @return True if the directory is valid for storage.
+     */
+    fun isValidStorageDirectory(dir: UniFile?, requiredBytes: Long = 1024 * 1024): Boolean {
+        if (dir == null || !dir.exists() || !dir.isDirectory) return false
+
+        // Check if we can write
+        if (!dir.canWrite()) return false
+
+        // Check available space
+        val available = getAvailableStorageSpace(dir)
+        if (available != -1L && available < requiredBytes) return false
+
+        return true
+    }
+
+    /**
+     * Attempts to resolve a human-readable path from a URI.
+     */
+    fun getFriendlyPath(dir: UniFile): String {
+        val path = dir.filePath
+        if (path != null) return path
+
+        val uri = dir.uri
+        return when (uri.authority) {
+            "com.android.externalstorage.documents" -> {
+                val docId = uri.path?.substringAfterLast("/document/", "") ?: ""
+                val split = docId.split(":")
+                if (split.size >= 2) "${split[0]}/${split[1]}" else docId
+            }
+            "com.android.providers.downloads.documents" -> "Downloads"
+            else -> uri.toString()
         }
     }
 

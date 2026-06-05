@@ -70,6 +70,7 @@ import tachiyomi.domain.backup.service.BackupPreferences
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.manga.interactor.GetFavorites
 import tachiyomi.domain.manga.model.Manga
+import tachiyomi.domain.storage.service.StorageManager
 import tachiyomi.domain.storage.service.StoragePreferences
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.TextButton
@@ -77,6 +78,8 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+
+import tachiyomi.core.common.storage.isSafRestricted
 
 object SettingsDataScreen : SearchableSettings {
 
@@ -102,10 +105,18 @@ object SettingsDataScreen : SearchableSettings {
     override fun getPreferences(): List<Preference> {
         val backupPreferences = Injekt.get<BackupPreferences>()
         val storagePreferences = Injekt.get<StoragePreferences>()
+        val storageManager = Injekt.get<StorageManager>()
 
         return persistentListOf(
             getStorageLocationPref(storagePreferences = storagePreferences),
-            Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_storage_location_info)),
+            if (storageManager.isStorageRestricted()) {
+                Preference.PreferenceItem.InfoPreference(
+                    "WARNING: Your current storage location is set via a restricted Android shortcut. " +
+                        "This may cause downloads to fail. Please re-pick the folder by navigating through 'Internal Storage' manually.",
+                )
+            } else {
+                Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_storage_location_info))
+            },
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
             getDataGroup(),
@@ -138,8 +149,12 @@ object SettingsDataScreen : SearchableSettings {
                     context.toast(MR.strings.file_picker_uri_permission_unsupported)
                 }
 
-                UniFile.fromUri(context, uri)?.let {
-                    storageDirPref.set(it.uri.toString())
+                val file = UniFile.fromUri(context, uri)
+                if (file != null) {
+                    if (file.isSafRestricted) {
+                        context.toast("Restricted location selected. Downloads might fail. Please use manual navigation.")
+                    }
+                    storageDirPref.set(file.uri.toString())
                 }
             }
         }
