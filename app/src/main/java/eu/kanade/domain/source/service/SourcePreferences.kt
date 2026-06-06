@@ -8,6 +8,7 @@ import tachiyomi.core.common.preference.PreferenceStore
 import tachiyomi.core.common.preference.getEnum
 import tachiyomi.core.common.preference.getLongArray
 import tachiyomi.domain.library.model.LibraryDisplayMode
+import tachiyomi.domain.source.interactor.GetRemoteManga
 
 class SourcePreferences(
     preferenceStore: PreferenceStore,
@@ -18,6 +19,11 @@ class SourcePreferences(
         LibraryDisplayMode.default,
         LibraryDisplayMode.Serializer::serialize,
         LibraryDisplayMode.Serializer::deserialize,
+    )
+
+    val defaultTab: Preference<DataView> = preferenceStore.getEnum(
+        "pref_source_default_tab",
+        DataView.POPULAR,
     )
 
     val enabledLanguages: Preference<Set<String>> = preferenceStore.getStringSet(
@@ -91,4 +97,9 @@ class SourcePreferences(
         "migration_hide_without_updates",
         false,
     )
+
+    enum class DataView(val query: String?) {
+        POPULAR(GetRemoteManga.QUERY_POPULAR),
+        LATEST(GetRemoteManga.QUERY_LATEST),
+    }
 }
