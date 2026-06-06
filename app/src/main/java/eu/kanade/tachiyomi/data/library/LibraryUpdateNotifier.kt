@@ -71,8 +71,8 @@ class LibraryUpdateNotifier(
     /**
      * Cached progress notification to avoid creating a lot.
      */
-    val progressNotificationBuilder by lazy {
-        context.notificationBuilder(Notifications.CHANNEL_LIBRARY_PROGRESS) {
+    val progressNotificationBuilder: NotificationCompat.Builder
+        get() = context.notificationBuilder(Notifications.CHANNEL_LIBRARY_PROGRESS) {
             setContentTitle(context.stringResource(MR.strings.app_name))
             setSmallIcon(R.drawable.ic_refresh_24dp)
             setLargeIcon(notificationBitmap)
@@ -80,7 +80,6 @@ class LibraryUpdateNotifier(
             setOnlyAlertOnce(true)
             addAction(R.drawable.ic_close_24dp, context.stringResource(MR.strings.action_cancel), cancelIntent)
         }
-    }
 
     /**
      * Shows the notification containing the currently updating manga and the progress.
@@ -90,22 +89,22 @@ class LibraryUpdateNotifier(
      * @param total the total progress.
      */
     fun showProgressNotification(manga: List<Manga>, current: Int, total: Int) {
-        progressNotificationBuilder
-            .setContentTitle(
-                context.stringResource(
-                    MR.strings.notification_updating_progress,
-                    percentFormatter.format(current.toFloat() / total),
-                ),
-            )
+        val builder = progressNotificationBuilder
+        builder.setContentTitle(
+            context.stringResource(
+                MR.strings.notification_updating_progress,
+                percentFormatter.format(current.toFloat() / total),
+            ),
+        )
 
         if (!securityPreferences.hideNotificationContent.get()) {
             val updatingText = manga.joinToString("\n") { it.title.chop(40) }
-            progressNotificationBuilder.setStyle(NotificationCompat.BigTextStyle().bigText(updatingText))
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(updatingText))
         }
 
         context.notify(
             Notifications.ID_LIBRARY_PROGRESS,
-            progressNotificationBuilder
+            builder
                 .setProgress(total, current, false)
                 .build(),
         )
