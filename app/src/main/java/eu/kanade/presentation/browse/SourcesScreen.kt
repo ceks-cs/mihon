@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.presentation.browse.components.BaseSourceItem
 import eu.kanade.tachiyomi.ui.browse.source.SourcesScreenModel
 import eu.kanade.tachiyomi.ui.browse.source.browse.BrowseSourceScreenModel.Listing
@@ -45,6 +46,7 @@ fun SourcesScreen(
     onClickItem: (Source, Listing) -> Unit,
     onClickPin: (Source) -> Unit,
     onLongClickItem: (Source) -> Unit,
+    defaultTab: SourcePreferences.DataView,
 ) {
     when {
         state.isLoading -> LoadingScreen(Modifier.padding(contentPadding))
@@ -84,6 +86,7 @@ fun SourcesScreen(
                             onClickItem = onClickItem,
                             onLongClickItem = onLongClickItem,
                             onClickPin = onClickPin,
+                            defaultTab = defaultTab,
                         )
                     }
                 }
@@ -112,12 +115,20 @@ private fun SourceItem(
     onClickItem: (Source, Listing) -> Unit,
     onLongClickItem: (Source) -> Unit,
     onClickPin: (Source) -> Unit,
+    defaultTab: SourcePreferences.DataView,
     modifier: Modifier = Modifier,
 ) {
     BaseSourceItem(
         modifier = modifier,
         source = source,
-        onClickItem = { onClickItem(source, Listing.Popular) },
+        onClickItem = {
+            val listing = if (defaultTab == SourcePreferences.DataView.LATEST && source.supportsLatest) {
+                Listing.Latest
+            } else {
+                Listing.Popular
+            }
+            onClickItem(source, listing)
+        },
         onLongClickItem = { onLongClickItem(source) },
         action = {
             if (source.supportsLatest) {
