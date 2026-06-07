@@ -18,6 +18,8 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.IOException
 
+import tachiyomi.core.common.storage.getOrCreateDirectory
+
 /**
  * This class is used to provide the directories where the downloads should be saved.
  * It uses the following path scheme: /<root downloads dir>/<source name>/<manga>/<chapter>
@@ -42,27 +44,34 @@ class DownloadProvider(
     internal fun getMangaDir(mangaTitle: String, source: Source): Result<UniFile> {
         val downloadsDir = downloadsDir
         if (downloadsDir == null) {
-            logcat(LogPriority.ERROR) { "Failed to create download directory" }
+            val isRestricted = storageManager.isStorageRestricted()
+            val message = if (isRestricted) {
+                "Downloads directory is inaccessible. This typically happens when using the Android 'Download' shortcut. " +
+                    "Please pick the storage location by navigating through 'Internal Storage' manually."
+            } else {
+                "Failed to create download directory. Check if the storage location is still valid and has write permissions."
+            }
+            logcat(LogPriority.ERROR) { message }
             return Result.failure(
                 IOException(context.stringResource(MR.strings.storage_failed_to_create_download_directory)),
             )
         }
 
         val sourceDirName = getSourceDirName(source)
-        val sourceDir = downloadsDir.createDirectory(sourceDirName)
+        val sourceDir = downloadsDir.getOrCreateDirectory(sourceDirName)
         if (sourceDir == null) {
             val displayablePath = downloadsDir.displayablePath + "/$sourceDirName"
-            logcat(LogPriority.ERROR) { "Failed to create source download directory: $displayablePath" }
+            logcat(LogPriority.ERROR) { "Failed to create source download directory: $displayablePath. Authority: ${downloadsDir.uri.authority}" }
             return Result.failure(
                 IOException(context.stringResource(MR.strings.storage_failed_to_create_directory, displayablePath)),
             )
         }
 
         val mangaDirName = getMangaDirName(mangaTitle)
-        val mangaDir = sourceDir.createDirectory(mangaDirName)
+        val mangaDir = sourceDir.getOrCreateDirectory(mangaDirName)
         if (mangaDir == null) {
             val displayablePath = sourceDir.displayablePath + "/$mangaDirName"
-            logcat(LogPriority.ERROR) { "Failed to create manga download directory: $displayablePath" }
+            logcat(LogPriority.ERROR) { "Failed to create manga download directory: $displayablePath. Parent writable: ${sourceDir.canWrite()}" }
             return Result.failure(
                 IOException(context.stringResource(MR.strings.storage_failed_to_create_directory, displayablePath)),
             )

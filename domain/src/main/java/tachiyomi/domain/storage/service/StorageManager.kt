@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
+import logcat.LogPriority
+import tachiyomi.core.common.storage.getOrCreateDirectory
+import tachiyomi.core.common.storage.isSafRestricted
+import tachiyomi.core.common.util.system.logcat
 
 class StorageManager(
     private val context: Context,
@@ -35,10 +39,14 @@ class StorageManager(
             .onEach { uri ->
                 baseDir = getBaseDir(uri)
                 baseDir?.let { parent ->
-                    parent.createDirectory(AUTOMATIC_BACKUPS_PATH)
-                    parent.createDirectory(LOCAL_SOURCE_PATH)
-                    parent.createDirectory(DOWNLOADS_PATH).also {
-                        DiskUtil.createNoMediaFile(it, context)
+                    try {
+                        parent.getOrCreateDirectory(AUTOMATIC_BACKUPS_PATH)
+                        parent.getOrCreateDirectory(LOCAL_SOURCE_PATH)
+                        parent.getOrCreateDirectory(DOWNLOADS_PATH)?.also {
+                            DiskUtil.createNoMediaFile(it, context)
+                        }
+                    } catch (e: Exception) {
+                        logcat(LogPriority.ERROR, e) { "Failed to initialize storage directories" }
                     }
                 }
                 _changes.send(Unit)
@@ -52,15 +60,19 @@ class StorageManager(
     }
 
     fun getAutomaticBackupsDirectory(): UniFile? {
-        return baseDir?.createDirectory(AUTOMATIC_BACKUPS_PATH)
+        return baseDir?.getOrCreateDirectory(AUTOMATIC_BACKUPS_PATH)
     }
 
     fun getDownloadsDirectory(): UniFile? {
-        return baseDir?.createDirectory(DOWNLOADS_PATH)
+        return baseDir?.getOrCreateDirectory(DOWNLOADS_PATH)
     }
 
     fun getLocalSourceDirectory(): UniFile? {
-        return baseDir?.createDirectory(LOCAL_SOURCE_PATH)
+        return baseDir?.getOrCreateDirectory(LOCAL_SOURCE_PATH)
+    }
+
+    fun isStorageRestricted(): Boolean {
+        return baseDir?.isSafRestricted ?: false
     }
 }
 
